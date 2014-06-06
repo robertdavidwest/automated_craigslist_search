@@ -32,8 +32,8 @@ def search_craigslist(seach_key_words,min_value,max_value):
     url = 'http://newyork.craigslist.org/search/tix?query=' + seach_key_words + '&minAsk=' + str(min_value) + '&maxAsk=' + str(max_value) + '&sort=rel' 
     pdb.set_trace()
     # Proxy settings for work
-    username = "westro"
-    pword = "Spring2014"  
+    username = "XXX"
+    pword = "XXX"  
     proxy = urllib2.ProxyHandler({'http': 'http://' + username + ":" + pword + '@amweb.ey.net:80'})
     auth = urllib2.HTTPBasicAuthHandler()
     opener = urllib2.build_opener(proxy, auth, urllib2.HTTPHandler)
