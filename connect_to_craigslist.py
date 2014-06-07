@@ -4,6 +4,16 @@ import pandas
 import pdb
 
 def get_category(category):
+    """ 'get_category' maps the craigslist category to the url search code
+
+    :param category: a string specifying the craiglist category to search within
+    :type seach_key_words: str or unicode
+
+    :returns: the url search code
+    :rtype: str
+
+    """
+    
     category_key = {'all for sale / wanted' : 'sss', \
                     'antiques' : 'ata', \
                     'appliances' : 'ppa', \
@@ -47,16 +57,13 @@ def get_category(category):
     
     return category_key[category]
 
-def search_craigslist(seach_key_words, min_value, max_value, category='all for sale / wanted'):
+def search_craigslist(seach_key_words, min_value, max_value, category='all for sale / wanted', words_not_included=''):
     """ 'search_craigslist' for specific keys words and over a specified price 
     range. The function will return a Pandas Dataframe containing the 'price',
     'title' and 'url' for every search result
 
     :param seach_key_words: a string of search key words separated by spaces
     :type seach_key_words: str or unicode
-    
-    :param priority: priority number
-    :type priority: str or unicode
 
     :param min_value: minimum dollar value for search
     :type min_value: integer or float
@@ -64,14 +71,15 @@ def search_craigslist(seach_key_words, min_value, max_value, category='all for s
     :param max_value: maximum dollar value for search
     :type max_value: integer or float
 
-    :param category: maximum dollar value for search
+    :param category: craigslist search category
     :type category: str or unicode
 
+    :param words_not_included: a string of words to be excluded from search results separated by spaces
+    :type priority: str or unicode
+    
     :returns: a pandas dataframe containing search results
     :rtype: Pandas.DataFrame
-    """
-        
-    # Add functionality to change category currently set on tickets    
+    """  
     # Add functionality to change city, currenrly set on newyork    
        
     # construct search url from specified criteria    
@@ -99,8 +107,9 @@ def search_craigslist(seach_key_words, min_value, max_value, category='all for s
     urls = []
     price = []
     for row in search_content.find_all('p',{'class':'row'}):    
-        # search result url: this is contained in class i in every row of 'search_content'
+        # text and url data
         class_pl_info = row.find('span',{'class':'pl'}) 
+        # price data
         class_price_info = row.find('span',{'class':'price'}) 
         
         # there is one href stored in 'class_pl_info' with a single 'a' tag
@@ -111,22 +120,29 @@ def search_craigslist(seach_key_words, min_value, max_value, category='all for s
         # class_price_info contains the respective price
         price.append(class_price_info.getText())
     
-    d = {'text' : text,'urls' : urls,'price' : price}
+    # store results in pandas dataframe
+    d = {'text' : text, 'urls' : urls, 'price' : price}
     df = pandas.DataFrame(d)
-    
+
+    # Remove rows that contain words from the string 'words_not_included'
+    words_not_included = words_not_included.split()
+    for word in words_not_included:
+        idx = [x.find(word) ==-1 for x in df.text] # idx shows which rows do not contain excluded words
+        df = df[idx] # only keep rows that do not contain excluded words
+        
     return df    
     
         
 if __name__ == "__main__":    
 
     search_key_words = 'burning man'
+    words_not_included = '' #wanted Wanted WANTED'
     min_value = 350
-    max_value = 450
+    max_value = 1300
     category = 'tickets'
-    df = search_craigslist(search_key_words,min_value,max_value,category)
+    #df = search_craigslist(search_key_words,min_value,max_value,category,words_not_included)
+    df2 = search_craigslist(search_key_words,min_value,max_value,'all for sale / wanted',words_not_included)
     
-    df2 = search_craigslist(search_key_words,min_value,max_value)
-    
-    print df
+    #print df
     print df2
     
