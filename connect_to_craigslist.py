@@ -2,6 +2,9 @@ import urllib2
 import bs4
 import pandas
 import pdb
+import shutil 
+import time
+import datetime
 
 def get_category(category):
     """ 'get_category' maps the craigslist category to the url search code
@@ -102,9 +105,10 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     assert(len(search_content)==1) # There should only be one div class="content", if more than one returned, stop program
     search_content = search_content.pop()
     
-    text = []
+    results = []
     urls = []
     price = []
+   
     for row in search_content.find_all('p',{'class':'row'}):    
         # text and url data
         class_pl_info = row.find('span',{'class':'pl'}) 
@@ -114,7 +118,8 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
         # there is one href stored in 'class_pl_info' with a single 'a' tag
         #    - the method 'getText' will return unicode containing the search entry title
         #    - the method 'attrs' will return a dict, and the key 'href' will then return the respective url
-        text.append(class_pl_info.find('a').getText())
+
+        results.append(class_pl_info.find('a').getText())
         urls.append(class_pl_info.find('a').attrs['href'])
         # class_price_info contains the respective price if one is specified
         if class_price_info == None:
@@ -123,28 +128,59 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
             price.append(class_price_info.getText())
     
     # store results in pandas dataframe
-    d = {'text' : text, 'urls' : urls, 'price' : price}
+    d = {'Results' : results, 'urls' : urls, 'Price' : price}
     df = pandas.DataFrame(d)
-
+    
     # Remove rows that contain words from the string 'words_not_included'
     words_not_included = words_not_included.split()
     for word in words_not_included:
-        idx = [x.find(word) ==-1 for x in df.text] # idx shows which rows do not contain excluded words
+        idx = [x.find(word) ==-1 for x in df.Results] # idx shows which rows do not contain excluded words
         df = df[idx] # only keep rows that do not contain excluded words
-        
+
     return df
     
-        
-if __name__ == "__main__":    
+def create_html_output(df_criteria, df_results) :    
+  
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H.%M.%S')
+    output_filename = 'search_results_' + st + '.html'
+         
+    # reconstruct hrefs for output
+    df_results.Results = '<a href="http://newyork.craigslist.org/' + df_results.urls + '">' + df_results.Results + '</a>' 
+    df_results = df_results.drop('urls',1)
+    # adjust the pandas max_colwidth so that the output is not truncated when it is converted to html table
+    pandas.set_option('max_colwidth',200)
 
-    search_key_words = 'burning man tickets'
-    words_not_included = 'wanted Wanted WANTED'
+
+    table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
+
+    shutil.copyfile('search_results_template.html', output_filename)
+    with open(output_filename, 'a') as f:
+
+        # Display search criteria 
+        f.write('\n <p>Your automated craigslist query that had the following inputs: </p>')
+        f.write(df_criteria.to_html())
+        # Display results
+        f.write('\n <p> has the following matching search results live right now: </p>')
+        f.write(table)
+        f.write('\n </body>')
+        f.write('\n </html>')
+
+                                      
+if __name__ == "__main__":    
+    
+    search_key_words = 'burning man'
+    words_not_included = ''#'wanted Wanted WANTED'
     min_value = 350
     max_value = 1300
-    category = 'tickets'
-    #df = search_craigslist(search_key_words,min_value,max_value,category,words_not_included)
-    #df2 = search_craigslist(search_key_words,min_value=200,max_value=400)
-    df2 = search_craigslist(search_key_words,250)
-    #print df
-    print df2
+    category = 'all for sale / wanted'
+ 
+    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included)
+    
+    # Dataframe containing all search criteria
+    index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price']
+    d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value]}
+    criteria_df = pandas.DataFrame(d,index=index)
+  
+    create_html_output(criteria_df,df)
     
