@@ -108,27 +108,42 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     results = []
     urls = []
     price = []
-   
+    dates = []
+    location = []
+    
     for row in search_content.find_all('p',{'class':'row'}):    
         # text and url data
         class_pl_info = row.find('span',{'class':'pl'}) 
-        # price data
-        class_price_info = row.find('span',{'class':'price'}) 
-        
-        # there is one href stored in 'class_pl_info' with a single 'a' tag
+        # there is an href stored in 'class_pl_info' with a single 'a' tag
         #    - the method 'getText' will return unicode containing the search entry title
         #    - the method 'attrs' will return a dict, and the key 'href' will then return the respective url
-
         results.append(class_pl_info.find('a').getText())
         urls.append(class_pl_info.find('a').attrs['href'])
+        
+        # price data
+        class_price_info = row.find('span',{'class':'price'}) 
         # class_price_info contains the respective price if one is specified
         if class_price_info == None:
             price.append(None)   
         else :
-            price.append(class_price_info.getText())
+            price.append(class_price_info.getText())        
+        
+        # date of craigslist post
+        date_info = row.find('span',{'class','date'})
+        dates.append(date_info.getText())
     
+        # Location
+        location_info = row.find('span',{'class':'pnr'})
+        location_info = location_info.find('small')
+        # class_price_info contains the respective price if one is specified
+       
+        if location_info == None:
+            location.append(None)   
+        else :
+            location.append(location_info.getText()) 
+       
     # store results in pandas dataframe
-    d = {'Results' : results, 'urls' : urls, 'Price' : price}
+    d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
     df = pandas.DataFrame(d)
     
     # Remove rows that contain words from the string 'words_not_included'
@@ -141,22 +156,27 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     
 def create_html_output(df_criteria, df_results) :    
   
+    # create timestamp string for output file
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H.%M.%S')
     output_filename = 'search_results_' + st + '.html'
-         
-    # reconstruct hrefs for output
-    df_results.Results = '<a href="http://newyork.craigslist.org/' + df_results.urls + '">' + df_results.Results + '</a>' 
+    
+    # reconstruct hrefs for output (adding 'http://newyork.craigslist.org' if needed 
+    start_string = ['<a href="http://newyork.craigslist.org/' if x[:4]!='http' else '<a href="' for x in df_results.urls]
+    
+    df_results.Results = start_string + df_results.urls + '">' + df_results.Results + '</a>' 
     df_results = df_results.drop('urls',1)
     # adjust the pandas max_colwidth so that the output is not truncated when it is converted to html table
     pandas.set_option('max_colwidth',200)
 
-
+    # convert output datafram into html table
     table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
 
+    # copy the html template file and rename
     shutil.copyfile('search_results_template.html', output_filename)
-    with open(output_filename, 'a') as f:
 
+    # write the results to the file    
+    with open(output_filename, 'a') as f:
         # Display search criteria 
         f.write('\n <p>Your automated craigslist query that had the following inputs: </p>')
         f.write(df_criteria.to_html())
