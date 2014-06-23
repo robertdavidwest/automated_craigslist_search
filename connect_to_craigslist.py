@@ -1,10 +1,9 @@
+
+
+
 import urllib2
 import bs4
 import pandas
-import pdb
-import shutil 
-import time
-import datetime
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -42,15 +41,12 @@ def create_html_output(df_criteria, df_results) :
     # convert output dataframe into html table
     table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
 
-    # copy the html template file and rename
-    shutil.copyfile('search_results_template.html', output_filename)
-
-    email_message = table
-
+    # read in html template including css
     f = open('search_results_template.html', 'r')
     email_message = f.read()   
     f.close()
 
+    # append the search results and criteria, then close the html body 
     email_message = email_message + '\n <p>Your automated craigslist query that had the following inputs: </p>'
     email_message = email_message + df_criteria.to_html()
     email_message = email_message + '\n <p> has the following matching search results live right now: </p>'
@@ -298,7 +294,7 @@ if __name__ == "__main__":
     df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included)
     
     # If Dataframe is not empty then e-mail results
-    if len(df ~= 0):
+    if len(df != 0):
         email_message = create_html_output(criteria_df,df)
  
         password = raw_input("Please enter your gmail password: ")
