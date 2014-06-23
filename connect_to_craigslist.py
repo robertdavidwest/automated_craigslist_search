@@ -298,8 +298,8 @@ if __name__ == "__main__":
         email_message = create_html_output(criteria_df,df)
  
         password = raw_input("Please enter your gmail password: ")
-        for x in mailinglist:
-            send_email(send_alterts_from, x, password,email_message, search_key_words)
+        for x in mailing_list:
+            send_email(send_alerts_from, x, password,email_message)
     
     
     
