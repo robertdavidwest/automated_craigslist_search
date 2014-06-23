@@ -9,6 +9,58 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+def create_html_output(df_criteria, df_results) :    
+    """ 'create_html_output' Takes in two pandas dataframes one containing the search criteria and one containing the results of the craigslist search. The function transforms this data into html, ready to be e-mailed. The function returns a string containing the html. 
+     
+    :param me: a string containing the gmail address that mail will be sent from
+    :type seach_key_words: str or unicode
+    
+    :param you: a string containing the recipients email address
+    :type seach_key_words: str or unicode
+    
+    :param html: a string containing the gmail user's password
+    :type seach_key_words: str or unicode
+    
+    :param html: a string containing the html e-mail message to be sent
+    :type seach_key_words: str or unicode
+    
+    :param html: a string containing the search key words that were used in the craiglist search
+    :type seach_key_words: str or unicode
+    
+    :returns: a string containing html ready to be e-mailed
+    :rtype: str
+    """
+    	
+    # reconstruct hrefs for output (adding 'http://newyork.craigslist.org' if needed i.e. if search result is outside of new york
+    start_string = ['<a href="http://newyork.craigslist.org/' if x[:4]!='http' else '<a href="' for x in df_results.urls]
+
+    df_results.Results = start_string + df_results.urls + '">' + df_results.Results + '</a>' 
+    df_results = df_results.drop('urls',1)
+    # adjust the pandas max_colwidth so that the output is not truncated when it is converted to html table
+    pandas.set_option('max_colwidth',200)
+
+    # convert output dataframe into html table
+    table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
+
+    # copy the html template file and rename
+    shutil.copyfile('search_results_template.html', output_filename)
+
+    email_message = table
+
+    f = open('search_results_template.html', 'r')
+    email_message = f.read()   
+    f.close()
+
+    email_message = email_message + '\n <p>Your automated craigslist query that had the following inputs: </p>'
+    email_message = email_message + df_criteria.to_html()
+    email_message = email_message + '\n <p> has the following matching search results live right now: </p>'
+    email_message = email_message + table
+    email_message = email_message + '\n </body>'
+    email_message = email_message + '\n </html>'
+
+    f.close()
+
+    return email_message
 
 def get_category(category):
     """ 'get_category' maps the craigslist category to the url search code
@@ -158,8 +210,25 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
 
     return df
 
-def send_email(password, html, search_key_words):
-    
+def send_email(me, you, password, html):
+    """ 'send_email' will send an email from the e-mail address 'me', to 'you'. The email message sent is stored in 'html'. The function has no return output 
+     
+    :param me: a string containing the gmail address that mail will be sent from
+    :type seach_key_words: str or unicode
+
+    :param you: a string containing the recipients email address
+    :type seach_key_words: str or unicode
+
+    :param html: a string containing the gmail user's password
+    :type seach_key_words: str or unicode
+
+    :param html: a string containing the html e-mail message to be sent
+    :type seach_key_words: str or unicode
+
+    :param html: a string containing the search key words that were used in the craiglist search
+    :type seach_key_words: str or unicode
+
+    """
     # me == my email address
     # you == recipient's email address
     me = "ticket.alerts.from.robert@gmail.com"
@@ -196,42 +265,12 @@ def send_email(password, html, search_key_words):
     server.sendmail(me, you, msg.as_string())
     server.quit()
     
-def create_html_output(df_criteria, df_results) :    
-      
-    # reconstruct hrefs for output (adding 'http://newyork.craigslist.org' if needed i.e. if search result is outside of new york
-    start_string = ['<a href="http://newyork.craigslist.org/' if x[:4]!='http' else '<a href="' for x in df_results.urls]
-    
-    df_results.Results = start_string + df_results.urls + '">' + df_results.Results + '</a>' 
-    df_results = df_results.drop('urls',1)
-    # adjust the pandas max_colwidth so that the output is not truncated when it is converted to html table
-    pandas.set_option('max_colwidth',200)
-
-    # convert output dataframe into html table
-    table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
-
-    # copy the html template file and rename
-    shutil.copyfile('search_results_template.html', output_filename)
-        
-    email_message = table
-    
-    f = open('search_results_template.html', 'r')
-    email_message = f.read()   
-    f.close()
-    
-    email_message = email_message + '\n <p>Your automated craigslist query that had the following inputs: </p>'
-    email_message = email_message + df_criteria.to_html()
-    email_message = email_message + '\n <p> has the following matching search results live right now: </p>'
-    email_message = email_message + table
-    email_message = email_message + '\n </body>'
-    email_message = email_message + '\n </html>'
-    
-    f.close()
-  
-    return email_message
-
-
                                       
 if __name__ == "__main__":    
+    
+    #############################################
+    # Search criteria
+    #############################################
     
     search_key_words = 'burning man tickets'
     words_not_included = ''#'wanted Wanted WANTED'
@@ -239,17 +278,32 @@ if __name__ == "__main__":
     max_value = 1500
     category = 'all for sale / wanted'
  
-    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included)
-    
+    #############################################
+    # E-mail information
+    #############################################
+     
+    # the gmail address that alerts will come from: this will require the users password
+    send_alerts_from = "ticket.alerts.from.robert@gmail.com"
+     
+    # the mailing list. A Python List of strings, each containing e-mail addresses:
+    mailing_list = ["robert.david.west@gmail.com", "robertdavidwest@gmail.com"]
+     
+    ############################################# 
     # Dataframe containing all search criteria
     index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price']
     d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value]}
     criteria_df = pandas.DataFrame(d,index=index)
-  
-    email_message = create_html_output(criteria_df,df)
+     
+    # Dataframe containing results
+    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included)
+    
+    # If Dataframe is not empty then e-mail results
+    if len(df ~= 0):
+        email_message = create_html_output(criteria_df,df)
  
-    password = raw_input("Please enter your gmail password: ")
-    send_email(password,email_message, search_key_words)
+        password = raw_input("Please enter your gmail password: ")
+        for x in mailinglist:
+            send_email(send_alterts_from, x, password,email_message, search_key_words)
     
     
     
