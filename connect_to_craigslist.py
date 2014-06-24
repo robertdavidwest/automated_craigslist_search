@@ -223,16 +223,16 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
             else :
                 location.append(location_info.getText()) 
            
-        # store results in pandas dataframe
-        d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
-        df = pandas.DataFrame(d)
+    # store results in pandas dataframe
+    d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
+    df = pandas.DataFrame(d)
         
-        # Remove rows that contain words from the string 'words_not_included'
-        words = words_not_included.split()
-        for word in words:
-            idx = [x.find(word) ==-1 for x in df.Results] # idx shows which rows do not contain excluded words
-            df = df[idx] # only keep rows that do not contain excluded words
-
+    # Remove rows that contain words from the string 'words_not_included'
+    words = words_not_included.split()
+    for word in words:
+        idx = [x.find(word) ==-1 for x in df.Results] # idx shows which rows do not contain excluded words
+        df = df[idx] # only keep rows that do not contain excluded words
+    
     return df
 
 def send_email(me, you, password, html):
