@@ -7,6 +7,7 @@ import pandas
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import pdb
 
 def create_html_output(df_criteria, df_results) :    
     """ 'create_html_output' Takes in two pandas dataframes one containing the search criteria and one containing the results of the craigslist search. The function transforms this data into html, ready to be e-mailed. The function returns a string containing the html. 
@@ -135,8 +136,11 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     :returns: a pandas dataframe containing search results
     :rtype: Pandas.DataFrame
     """  
-    # Add functionality to change city, currenrly set on newyork    
-
+    
+    #############################################################
+    # Add functionality to change city, currently set on newyork    
+    #############################################################
+    
     # construct search url from specified criteria    
     seach_key_words = seach_key_words.replace(' ','+')
     url = 'http://newyork.craigslist.org/search/' + get_category(category) + '?query=' + seach_key_words 
@@ -151,58 +155,83 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     # Open url and use beautiful soup to find search results    
     response = urllib2.urlopen(url)
     soup = bs4.BeautifulSoup(response)
-    
-    # All data returned from the query is stored in <div class="content">
-    search_content = soup.find_all('div', {'class':'content'})
-    assert(len(search_content)==1) # There should only be one div class="content", if more than one returned, stop program
-    search_content = search_content.pop()
-    
+       
+    # initialise lists that will hold results of the search
     results = []
     urls = []
     price = []
     dates = []
     location = []
+   
+    # Check to see if multiple pages have been returned from the search
+    # if so, loop through each page and append the results
+    multi_page_info = soup.find('span', {'class':'paginator buttongroup'})
+    multi_page_info = multi_page_info.find('span', {'class':'button pagenum'})
+
+    idx = multi_page_info.text.find("of")
+    if multi_page_info.text == "no results":
+        num_loops = 0
+    elif idx == -1 :
+        num_loops = 1
+    else : 
+        num_results = float(multi_page_info.text[idx+3:])
+        num_loops = int(num_results/100) + 1
     
-    for row in search_content.find_all('p',{'class':'row'}):    
-        # text and url data
-        class_pl_info = row.find('span',{'class':'pl'}) 
-        # there is an href stored in 'class_pl_info' with a single 'a' tag
-        #    - the method 'getText' will return unicode containing the search entry title
-        #    - the method 'attrs' will return a dict, and the key 'href' will then return the respective url
-        results.append(class_pl_info.find('a').getText())
-        urls.append(class_pl_info.find('a').attrs['href'])
+    # craigslist results are broken into blocks of 100, loop through each set of 100 and append the results
+    for i in range(num_loops):        
         
-        # price data
-        class_price_info = row.find('span',{'class':'price'}) 
-        # class_price_info contains the respective price if one is specified
-        if class_price_info == None:
-            price.append(None)   
-        else :
-            price.append(class_price_info.getText())        
+        idx = url.find("?")
+        current_url = url[:idx+1] + "s=" + str(i*100) +  url[:idx+1]
+
+        # Open url and use beautiful soup to find search results    
+        response = urllib2.urlopen(current_url)
+        soup = bs4.BeautifulSoup(response)
+
+        # All data returned from the query is stored in <div class="content">
+        search_content = soup.find_all('div', {'class':'content'})
+        assert(len(search_content)==1) # There should only be one div class="content", if more than one returned, stop program
+        search_content = search_content.pop()
+          
+        for row in search_content.find_all('p',{'class':'row'}):    
+            # text and url data
+            class_pl_info = row.find('span',{'class':'pl'}) 
+            # there is an href stored in 'class_pl_info' with a single 'a' tag
+            #    - the method 'getText' will return unicode containing the search entry title
+            #    - the method 'attrs' will return a dict, and the key 'href' will then return the respective url
+            results.append(class_pl_info.find('a').getText())
+            urls.append(class_pl_info.find('a').attrs['href'])
+            
+            # price data
+            class_price_info = row.find('span',{'class':'price'}) 
+            # class_price_info contains the respective price if one is specified
+            if class_price_info == None:
+                price.append(None)   
+            else :
+                price.append(class_price_info.getText())        
+            
+            # date of craigslist post
+            date_info = row.find('span',{'class','date'})
+            dates.append(date_info.getText())
         
-        # date of craigslist post
-        date_info = row.find('span',{'class','date'})
-        dates.append(date_info.getText())
-    
-        # Location
-        location_info = row.find('span',{'class':'pnr'})
-        location_info = location_info.find('small')
-        # class_price_info contains the respective price if one is specified
-       
-        if location_info == None:
-            location.append(None)   
-        else :
-            location.append(location_info.getText()) 
-       
-    # store results in pandas dataframe
-    d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
-    df = pandas.DataFrame(d)
-    
-    # Remove rows that contain words from the string 'words_not_included'
-    words_not_included = words_not_included.split()
-    for word in words_not_included:
-        idx = [x.find(word) ==-1 for x in df.Results] # idx shows which rows do not contain excluded words
-        df = df[idx] # only keep rows that do not contain excluded words
+            # Location
+            location_info = row.find('span',{'class':'pnr'})
+            location_info = location_info.find('small')
+            # class_price_info contains the respective price if one is specified
+           
+            if location_info == None:
+                location.append(None)   
+            else :
+                location.append(location_info.getText()) 
+           
+        # store results in pandas dataframe
+        d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
+        df = pandas.DataFrame(d)
+        
+        # Remove rows that contain words from the string 'words_not_included'
+        words = words_not_included.split()
+        for word in words:
+            idx = [x.find(word) ==-1 for x in df.Results] # idx shows which rows do not contain excluded words
+            df = df[idx] # only keep rows that do not contain excluded words
 
     return df
 
