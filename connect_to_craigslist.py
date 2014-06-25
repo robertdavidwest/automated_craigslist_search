@@ -277,7 +277,7 @@ def send_email(me, you, password, html):
     server.starttls()
     server.ehlo()
     server.login(me, password)
-    pdb.set_trace()
+    
     # sendmail function takes 3 arguments: sender's address, recipient's address
     # and message to send - here it is sent as one string.
     server.sendmail(me, you, msg.as_string())
