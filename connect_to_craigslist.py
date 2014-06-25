@@ -258,7 +258,8 @@ def send_email(me, you, password, html):
     msg['To'] = you
     
     # Create the body of the message (a plain-text and an HTML version).
-    text = "Hi!\nHow are you?\nHere is the link you wanted:\nhttp://www.python.org"
+    # No text version available, just send a msg explaining the html is requied to read email
+    text = 'html is required to read this e-mail'
     
     # Record the MIME types of both parts - text/plain and text/html.
     part1 = MIMEText(text, 'plain')
