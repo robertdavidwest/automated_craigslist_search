@@ -9,30 +9,24 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pdb
 
-def create_html_output(df_criteria, df_results) :    
+def create_html_output(df_criteria, df_results, city) :    
     """ 'create_html_output' Takes in two pandas dataframes one containing the search criteria and one containing the results of the craigslist search. The function transforms this data into html, ready to be e-mailed. The function returns a string containing the html. 
      
-    :param me: a string containing the gmail address that mail will be sent from
-    :type seach_key_words: str or unicode
+    :param df_criteria: a pandas dataframe containing search criteria
+    :type seach_key_words: pandas.DataFrame
     
-    :param you: a string containing the recipients email address
-    :type seach_key_words: str or unicode
+    :param df_results: a pandas dataframe containing search results
+    :type seach_key_words: pandas.DataFrame
     
-    :param html: a string containing the gmail user's password
-    :type seach_key_words: str or unicode
-    
-    :param html: a string containing the html e-mail message to be sent
-    :type seach_key_words: str or unicode
-    
-    :param html: a string containing the search key words that were used in the craiglist search
+    :param city: a string containing the city that the search was performed in
     :type seach_key_words: str or unicode
     
     :returns: a string containing html ready to be e-mailed
     :rtype: str
     """
     	
-    # reconstruct hrefs for output (adding 'http://newyork.craigslist.org' if needed i.e. if search result is outside of new york
-    start_string = ['<a href="http://newyork.craigslist.org/' if x[:4]!='http' else '<a href="' for x in df_results.urls]
+    # reconstruct hrefs for output e.g. (adding 'http://newyork.craigslist.org' if needed i.e. if search result is outside of new york
+    start_string = ['<a href="http://' + city + '.craigslist.org/' if x[:4]!='http' else '<a href="' for x in df_results.urls]
 
     df_results.Results = start_string + df_results.urls + '">' + df_results.Results + '</a>' 
     df_results = df_results.drop('urls',1)
@@ -70,7 +64,8 @@ def get_category(category):
 
     """
     
-    category_key = {'all for sale / wanted' : 'sss', \
+    category_key = {'activity partners' : 'act', \
+                    'all for sale / wanted' : 'sss', \
                     'antiques' : 'ata', \
                     'appliances' : 'ppa', \
                     'arts+crafts' : 'ara', \
@@ -113,7 +108,7 @@ def get_category(category):
     
     return category_key[category]
 
-def search_craigslist(seach_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included=''):
+def search_craigslist(seach_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
     """ 'search_craigslist' for specific keys words and over a specified price 
     range. The function will return a Pandas Dataframe containing the 'price',
     'title' and 'url' for every search result
@@ -132,18 +127,17 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
 
     :param words_not_included: a string of words to be excluded from search results separated by spaces. Default value is empty string/
     :type priority: str or unicode
-    
+
+    :param city: a string specifing the city to search in. Default value is 'newyork'
+    :type priority: str or unicode
+        
     :returns: a pandas dataframe containing search results
     :rtype: Pandas.DataFrame
     """  
     
-    #############################################################
-    # Add functionality to change city, currently set on newyork    
-    #############################################################
-    
     # construct search url from specified criteria    
     seach_key_words = seach_key_words.replace(' ','+')
-    url = 'http://newyork.craigslist.org/search/' + get_category(category) + '?query=' + seach_key_words 
+    url = 'http://' + city + '.craigslist.org/search/' + get_category(category) + '?query=' + seach_key_words 
     if pandas.isnull(min_value) is not None:
         url = url + '&minAsk=' + str(min_value)
     
@@ -168,20 +162,23 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     multi_page_info = soup.find('span', {'class':'paginator buttongroup'})
     multi_page_info = multi_page_info.find('span', {'class':'button pagenum'})
 
-    idx = multi_page_info.text.find("of")
+    idx1 = multi_page_info.text.find("of")
     if multi_page_info.text == "no results":
         num_loops = 0
-    elif idx == -1 :
+    elif idx1 == -1 :
         num_loops = 1
     else : 
-        num_results = float(multi_page_info.text[idx+3:])
+        num_results = float(multi_page_info.text[idx1+3:])
         num_loops = int(num_results/100) + 1
     
     # craigslist results are broken into blocks of 100, loop through each set of 100 and append the results
     for i in range(num_loops):        
         
-        idx = url.find("?")
-        current_url = url[:idx+1] + "s=" + str(i*100) +  url[:idx+1]
+        if idx1 == -1:
+            current_url = url
+        else :
+            idx2 = url.find("?")
+            current_url = url[:idx2+1] + "s=" + str(i*100) +  url[:idx2+1]
 
         # Open url and use beautiful soup to find search results    
         response = urllib2.urlopen(current_url)
@@ -244,20 +241,15 @@ def send_email(me, you, password, html):
     :param you: a string containing the recipients email address
     :type seach_key_words: str or unicode
 
-    :param html: a string containing the gmail user's password
+    :param password: a string containing the gmail user's password
     :type seach_key_words: str or unicode
 
     :param html: a string containing the html e-mail message to be sent
     :type seach_key_words: str or unicode
 
-    :param html: a string containing the search key words that were used in the craiglist search
-    :type seach_key_words: str or unicode
-
     """
     # me == my email address
     # you == recipient's email address
-    me = "ticket.alerts.from.robert@gmail.com"
-    you = "robert.david.west@gmail.com"
     
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
@@ -284,7 +276,7 @@ def send_email(me, you, password, html):
     server.starttls()
     server.ehlo()
     server.login(me, password)
-    
+    pdb.set_trace()
     # sendmail function takes 3 arguments: sender's address, recipient's address
     # and message to send - here it is sent as one string.
     server.sendmail(me, you, msg.as_string())
@@ -302,7 +294,8 @@ if __name__ == "__main__":
     min_value = 1
     max_value = 1500
     category = 'all for sale / wanted'
- 
+    city = 'newyork'
+    
     #############################################
     # E-mail information
     #############################################
@@ -315,16 +308,16 @@ if __name__ == "__main__":
      
     ############################################# 
     # Dataframe containing all search criteria
-    index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price']
-    d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value]}
+    index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price', 'City']
+    d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value, city]}
     criteria_df = pandas.DataFrame(d,index=index)
      
     # Dataframe containing results
-    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included)
+    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included, city)
     
     # If Dataframe is not empty then e-mail results
     if len(df != 0):
-        email_message = create_html_output(criteria_df,df)
+        email_message = create_html_output(criteria_df,df, city)
  
         password = raw_input("Please enter your gmail password: ")
         for x in mailing_list:
