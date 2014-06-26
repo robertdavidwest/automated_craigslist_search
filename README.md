@@ -1,5 +1,13 @@
-automated_craigslist_search
+automated\_craigslist\_search
 ===========================
+
+## Installation 
+
+Run the following from your favorite directory to begin using `automated_craigslist_search`
+
+		$ git clone git@github.com:robertdavidwest/api-automated_craigslist_search.git #assuming ssh install
+		$ cd automated_craigslist_search
+		$ python setup.py install
 
 ## Documentation
 
@@ -138,6 +146,7 @@ if __name__ == "__main__":
         for x in mailinglist:
             send_email(send_alterts_from, x, password,email_message, search_key_words)
     
+
     
     
     
