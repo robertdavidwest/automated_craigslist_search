@@ -8,3 +8,4 @@
 
 """
 import connect_to_craigslist
+import __search_results_template__

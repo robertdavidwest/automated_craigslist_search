@@ -2,7 +2,7 @@
 # encoding: utf-8
 """
 .. module:: connect_to_craigslist.py
-    :synopsis: 
+    :synopsis: search craiglist and filter results by description, price, and category. Then send html formatted results in an email to your friends, or to yourself.
 .. moduleauthor:: Robert D. West <robet.david.west@gmail.com>
 """
 
@@ -12,7 +12,7 @@ import pandas
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import pdb
+import __search_results_template__
 
 def create_html_output(df_criteria, df_results, city) :    
     """ 'create_html_output' Takes in two pandas dataframes one containing the search criteria and one containing the results of the craigslist search. The function transforms this data into html, ready to be e-mailed. The function returns a string containing the html. 
@@ -42,9 +42,7 @@ def create_html_output(df_criteria, df_results, city) :
     table = df_results.to_html(classes='df',index = False, justify='left',escape=False) # by setting escape=False we can keep the intended hrefs in the table
 
     # read in html template including css
-    f = open('search_results_template.html', 'r')
-    email_message = f.read()   
-    f.close()
+    email_message = __search_results_template__.html_template_string
 
     # append the search results and criteria, then close the html body 
     email_message = email_message + '\n <p>Your automated craigslist query that had the following inputs: </p>'
@@ -54,23 +52,26 @@ def create_html_output(df_criteria, df_results, city) :
     email_message = email_message + '\n </body>'
     email_message = email_message + '\n </html>'
 
-    f.close()
-
     return email_message
 
 def get_category(category):
     """ 'get_category' maps the craigslist category to the url search code
 
+    
     :param category: a string specifying the craiglist category to search within
     :type seach_key_words: str or unicode
 
     :returns: the url search code
     :rtype: str
 
+
+    .. note:: Subject of the Note
+        
+        This includes all 'sales' categories, the 'activity partners' category and 'men seeking women', others can easily be added
     """
     
     category_key = {'activity partners' : 'act', \
-                    'man seeking women' : 'm4w', \
+                    'men seeking women' : 'm4w', \
                     'all for sale / wanted' : 'sss', \
                     'antiques' : 'ata', \
                     'appliances' : 'ppa', \
