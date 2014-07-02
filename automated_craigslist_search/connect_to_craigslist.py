@@ -291,7 +291,7 @@ def send_email(me, you, password, html):
     server.quit()
     
                                       
-if __name__ == "__main__":    
+
     
         
     
