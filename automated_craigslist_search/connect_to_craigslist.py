@@ -3,7 +3,7 @@
 """
 .. module:: connect_to_craigslist.py
     :synopsis: search craiglist and filter results by description, price, and category. Then send html formatted results in an email to your friends, or to yourself.
-.. moduleauthor:: Robert D. West <robet.david.west@gmail.com>
+.. moduleauthor:: Robert D. West <robert.david.west@gmail.com>
 """
 
 import urllib2
@@ -115,13 +115,13 @@ def get_category(category):
     
     return category_key[category]
 
-def search_craigslist(seach_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
+def search_craigslist(search_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
     """ 'search_craigslist' for specific keys words and over a specified price 
     range. The function will return a Pandas Dataframe containing the 'price',
     'title' and 'url' for every search result
 
-    :param seach_key_words: a string of search key words separated by spaces
-    :type seach_key_words: str or unicode
+    :param search_key_words: a string of search key words separated by spaces
+    :type search_key_words: str or unicode
 
     :param min_value: minimum dollar value for search. Default value is nan, no lower bound on search.
     :type min_value: integer or float
@@ -143,8 +143,8 @@ def search_craigslist(seach_key_words, min_value=None, max_value=None, category=
     """  
     
     # construct search url from specified criteria    
-    seach_key_words = seach_key_words.replace(' ','+')
-    url = 'http://' + city + '.craigslist.org/search/' + get_category(category) + '?query=' + seach_key_words 
+    search_key_words = search_key_words.replace(' ','+')
+    url = 'http://' + city + '.craigslist.org/search/' + get_category(category) + '?query=' + search_key_words 
     if pandas.isnull(min_value) is not None:
         url = url + '&minAsk=' + str(min_value)
     
@@ -243,16 +243,16 @@ def send_email(me, you, password, html):
     """ 'send_email' will send an email from the e-mail address 'me', to 'you'. The email message sent is stored in 'html'. The function has no return output 
      
     :param me: a string containing the gmail address that mail will be sent from
-    :type seach_key_words: str or unicode
+    :type me: str or unicode
 
     :param you: a string containing the recipients email address
-    :type seach_key_words: str or unicode
+    :type you: str or unicode
 
     :param password: a string containing the gmail user's password
-    :type seach_key_words: str or unicode
+    :type password: str or unicode
 
     :param html: a string containing the html e-mail message to be sent
-    :type seach_key_words: str or unicode
+    :type html: str or unicode
 
     """
     # me == my email address
@@ -277,7 +277,7 @@ def send_email(me, you, password, html):
     # the HTML message, is best and preferred.
     msg.attach(part1)
     msg.attach(part2)
-    
+
     # Send the message via local SMTP server.
     server = smtplib.SMTP('smtp.gmail.com',587)
     server.ehlo()
@@ -289,11 +289,60 @@ def send_email(me, you, password, html):
     # and message to send - here it is sent as one string.
     server.sendmail(me, you, msg.as_string())
     server.quit()
+  
+      
+def search_and_send(my_gmail, mailing_list, password, search_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
+    """ 'search_and_send' will run a craigslist search using 'search_craigslist' format that results into html using 'create_html_output' and e-mail the results out to your 'mailinglist. If the search results in zero entries returned then no e-mail will be sent'
     
-                                      
+    for specific keys words and over a specified price 
+    range. The function will return a Pandas Dataframe containing the 'price',
+    'title' and 'url' for every search result
 
+    :param my_gmail: a string containing the gmail address that mail will be sent from
+    :type my_gmail: str or unicode
+
+    :param mailing_list: a list of strings containing the recipients email addresses
+    :type mailing_list: list
+
+    :param password: a string containing the gmail user's password
+    :type password: str or unicode
     
+    :param search_key_words: a string of search key words separated by spaces
+    :type search_key_words: str or unicode
+
+    :param min_value: minimum dollar value for search. Default value is nan, no lower bound on search.
+    :type min_value: integer or float
+
+    :param max_value: maximum dollar value for search. Default value is nan, no upper bound on search.
+    :type max_value: integer or float
+
+    :param category: craigslist search category. Default value is 'all for sale / wanted'
+    :type category: str or unicode
+
+    :param words_not_included: a string of words to be excluded from search results separated by spaces. Default value is empty string/
+    :type priority: str or unicode
+
+    :param city: a string specifing the city to search in. Default value is 'newyork'
+    :type priority: str or unicode
         
+    """                                       
     
+    ############################################# 
+    # Dataframe containing all search criteria
+    index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price', 'City']
+    d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value, city]}
+    criteria_df = pandas.DataFrame(d,index=index)
+    
+    # Dataframe containing results
+    df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included, city)
+    
+    # If Dataframe is not empty then e-mail results
+    if len(df != 0):
+   	email_message = create_html_output(criteria_df,df, city)
+   	
+   	for recipient in mailing_list:
+  		send_email(my_gmail, recipient, password, email_message)
+            
+        
     
     
