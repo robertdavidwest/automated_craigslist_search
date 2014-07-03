@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
-	:synopsis: "a craigslist search that will automatically e-mail the results when the search returns at least one entry. Run this file periodically from your server to set up craigslist alerts
+"""	:synopsis: "a craigslist search that will automatically e-mail the results when the search returns at least one entry. Run this file periodically from your server to set up craigslist alerts
 	
     .. moduleauthor:: Robert D. West <robet.david.west@gmail.com>
 """
@@ -14,7 +13,7 @@ import sys
 #############################################
 
 search_key_words = 'burning man tickets'
-words_not_included = 'needed Needed NEEDED wanted Wanted WANTED'
+words_not_included = 'INVENTORY needed Needed NEEDED wanted Wanted WANTED'
 min_value = 0
 max_value = 2000
 category = 'all for sale / wanted'
@@ -28,7 +27,7 @@ city = 'newyork'
 send_alerts_from = "ticket.alerts.from.robert@gmail.com"
  
 # the mailing list. A Python List of strings, each containing e-mail addresses:
-mailing_list = ["robert.david.west@gmail.com", "robertdavidwest@gmail.com"]
+mailing_list = ["robert.david.west@gmail.com"]
  
 ############################################# 
 # Dataframe containing all search criteria
@@ -42,8 +41,9 @@ df = connect_to_craigslist.search_craigslist(search_key_words, min_value,max_val
 # If Dataframe is not empty then e-mail results
 if len(df != 0):
 	email_message = connect_to_craigslist.create_html_output(criteria_df,df, city)
-	
-	password = sys.argv[1]
+        
+	f = open('/home/ubuntu/periodic_craigslist_search/ticket.alerts.from.robert.account.info.txt','r')
+	password = f.read()
 	
 	for x in mailing_list:
 		connect_to_craigslist.send_email(send_alerts_from, x, password,email_message)
