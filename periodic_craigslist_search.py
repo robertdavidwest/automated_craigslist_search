@@ -6,14 +6,13 @@
 """
 import automated_craigslist_search.connect_to_craigslist as connect_to_craigslist
 import pandas
-import sys
 
 #############################################
 # Search criteria
 #############################################
 
-search_key_words = 'burning man tickets'
-words_not_included = 'INVENTORY needed Needed NEEDED wanted Wanted WANTED'
+search_key_words = 'burning man tickets - inventory - needed - wanted'
+words_not_included = ''
 min_value = 0
 max_value = 2000
 category = 'all for sale / wanted'
@@ -30,20 +29,25 @@ send_alerts_from = "ticket.alerts.from.robert@gmail.com"
 mailing_list = ["robert.david.west@gmail.com"]
  
 ############################################# 
-# Dataframe containing all search criteria
-index = ['search key words', 'Words excluded','Category', 'Minimum Price', 'Maximum Price', 'City']
-d = {'Search Criteria' : [search_key_words, words_not_included, 'all for sale / wanted', min_value, max_value, city]}
-criteria_df = pandas.DataFrame(d,index=index)
- 
-# Dataframe containing results
-df = connect_to_craigslist.search_craigslist(search_key_words, min_value,max_value, category, words_not_included, city)
 
-# If Dataframe is not empty then e-mail results
-if len(df != 0):
-	email_message = connect_to_craigslist.create_html_output(criteria_df,df, city)
-        
-	f = open('/home/ubuntu/periodic_craigslist_search/ticket.alerts.from.robert.account.info.txt','r')
-	password = f.read()
-	
-	for x in mailing_list:
-		connect_to_craigslist.send_email(send_alerts_from, x, password,email_message)
+# Get gmail pword
+f = open('/Users/robertdavidwest/Documents/python_general_library/testing_space/cragslist/ticket.alerts.from.robert.account.info.txt','r')
+#f = open('/home/ubuntu/periodic_craigslist_search/ticket.alerts.from.robert.account.info.txt','r')
+password = f.read()
+
+# Open dataFrame of previous alert entries
+previous_alerts = pandas.HDFStore('previous_alerts.h5')
+
+# search and send results
+df = connect_to_craigslist.search_and_send(send_alerts_from, mailing_list, password, search_key_words, previous_alerts.df, min_value=min_value, max_value=max_value, words_not_included=words_not_included, city='newyork')
+
+# append current search results to full list
+previous_alerts.df = previous_alerts.df.append(df)
+
+# remove dupilicates
+previous_alerts.df = previous_alerts.df.drop_duplicates()
+
+# update previous search entries in hdf5 file
+previous_alerts.df.to_hdf('previous_alerts.h5','df')
+previous_alerts.close()
+

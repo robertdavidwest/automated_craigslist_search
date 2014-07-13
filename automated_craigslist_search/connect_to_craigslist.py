@@ -5,7 +5,7 @@
     :synopsis: search craiglist and filter results by description, price, and category. Then send html formatted results in an email to your friends, or to yourself.
 .. moduleauthor:: Robert D. West <robert.david.west@gmail.com>
 """
-
+import pdb
 import urllib2
 import bs4
 import pandas
@@ -291,7 +291,7 @@ def send_email(me, you, password, html):
     server.quit()
   
       
-def search_and_send(my_gmail, mailing_list, password, search_key_words, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
+def search_and_send(my_gmail, mailing_list, password, search_key_words, df_old_alerts, min_value=None, max_value=None, category='all for sale / wanted', words_not_included='', city='newyork'):
     """ 'search_and_send' will run a craigslist search using 'search_craigslist' format that results into html using 'create_html_output' and e-mail the results out to your 'mailinglist. If the search results in zero entries returned then no e-mail will be sent'
     
     for specific keys words and over a specified price 
@@ -309,6 +309,9 @@ def search_and_send(my_gmail, mailing_list, password, search_key_words, min_valu
     
     :param search_key_words: a string of search key words separated by spaces
     :type search_key_words: str or unicode
+
+    :param df_old_alerts: a pandas dataframe containing records that have already been sent as an alert
+    :type seach_key_words: pandas.DataFrame
 
     :param min_value: minimum dollar value for search. Default value is nan, no lower bound on search.
     :type min_value: integer or float
@@ -336,13 +339,22 @@ def search_and_send(my_gmail, mailing_list, password, search_key_words, min_valu
     # Dataframe containing results
     df = search_craigslist(search_key_words, min_value,max_value, category, words_not_included, city)
     
+    # Check each entry of the search results against each entry in the dataframe df_old_alerts. If any entry appears in both dataframes then remove it from df
+    remove_rows = []
+    for row in df['urls']:
+        idx = sum([row == x for x in df_old_alerts['urls']]) == 0
+        remove_rows.append(idx)
+    
+    df = df[remove_rows]
+       
     # If Dataframe is not empty then e-mail results
     if len(df != 0):
-   	email_message = create_html_output(criteria_df,df, city)
-   	
-   	for recipient in mailing_list:
-  		send_email(my_gmail, recipient, password, email_message)
-            
-        
-    
-    
+   	    email_message = create_html_output(criteria_df,df, city)	
+   	    for recipient in mailing_list:
+  		    send_email(my_gmail, recipient, password, email_message)
+  	
+  	# return dataframe of search results
+    return df
+  	
+  	
+  	
