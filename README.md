@@ -58,8 +58,9 @@ Using the function `search_and_send` you can e-mail (from a gmail account, this 
 	>>> mailing_list = ["pet_stores_in_ipswitch@yahoo.com", "dazed_parrots_in_bolton@gmail.com"]
 	>>> my_gmail = <yourgmailusername>@gmail.com
 	>>> password = <yourgmailpassword>
+	>>> previous_alerts_df = connect_to_craigslist.search_craigslist('fe4%%^gh;l') # empty DataFrame, use this dataframe to prevent duplicate entries being sent
 	>>> search_key_words = "parrot cage"
-	>>> connect_to_craigslist.search_and_send(my_gmail, mailing_list, password, search_key_words,min_value=50, max_value=250,words_not_included="dead",city="newyork")
+	>>> connect_to_craigslist.search_and_send(my_gmail, mailing_list, password, previous_alerts_df, search_key_words,min_value=50, max_value=250,words_not_included="dead",city="newyork")
 
 *NOTE: If you have 2 step verification turned on, on your gmail account you will need to disable, or, set up a separate gmail account (I prefer the latter, you can then also set up a handle related to the task at hand)*
 
