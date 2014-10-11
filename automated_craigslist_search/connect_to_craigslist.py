@@ -185,7 +185,7 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
             current_url = url
         else :
             idx2 = url.find("?")
-            current_url = url[:idx2+1] + "s=" + str(i*100) +  url[:idx2+1]
+            current_url = url[:idx2+1] + "s=" + str(i*100) +  url[idx2+1:]
 
         # Open url and use beautiful soup to find search results    
         response = urllib2.urlopen(current_url)
@@ -212,7 +212,7 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
                 price.append(None)   
             else :
                 price.append(class_price_info.getText())        
-            
+            pdb.set_trace()
             # date of craigslist post
             date_info = row.find('span',{'class','date'})
             dates.append(date_info.getText())
