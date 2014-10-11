@@ -52,6 +52,9 @@ def create_html_output(df_criteria, df_results, city) :
     email_message = email_message + '\n </body>'
     email_message = email_message + '\n </html>'
 
+    # encode utf-8
+    email_message  = email_message.encode('utf-8', 'replace')
+
     return email_message
 
 def get_category(category):
@@ -162,6 +165,7 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
     urls = []
     price = []
     dates = []
+    datetimes = []
     location = []
    
     # Check to see if multiple pages have been returned from the search
@@ -212,11 +216,14 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
                 price.append(None)   
             else :
                 price.append(class_price_info.getText())        
-            pdb.set_trace()
+            
             # date of craigslist post
-            date_info = row.find('span',{'class','date'})
+            date_info = row.find('time')
             dates.append(date_info.getText())
-        
+            
+            # datetime of craigslist post
+            datetimes.append(date_info.attrs['datetime'])
+            
             # Location
             location_info = row.find('span',{'class':'pnr'})
             location_info = location_info.find('small')
@@ -228,7 +235,7 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
                 location.append(location_info.getText()) 
            
     # store results in pandas dataframe
-    d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Location' : location }
+    d = {'Results' : results, 'urls' : urls, 'Price' : price, 'Date' : dates, 'Datetime' : datetimes , 'Location' : location }
     df = pandas.DataFrame(d)
         
     # Remove rows that contain words from the string 'words_not_included'
