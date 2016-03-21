@@ -356,12 +356,10 @@ def search_and_send(my_gmail, mailing_list, password, search_key_words, df_old_a
        
     # If Dataframe is not empty then e-mail results
     if len(df != 0):
-   	    email_message = create_html_output(criteria_df,df, city)	
-   	    for recipient in mailing_list:
-  		    send_email(my_gmail, recipient, password, email_message)
-  	
-  	# return dataframe of search results
+        email_message = create_html_output(criteria_df,df, city)
+        for recipient in mailing_list:
+            send_email(my_gmail, recipient, password, email_message)
+
+    # return dataframe of search results
     return df
-  	
-  	
-  	
+
