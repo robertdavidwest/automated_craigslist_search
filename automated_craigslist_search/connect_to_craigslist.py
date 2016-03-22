@@ -289,7 +289,7 @@ def send_email(me, you, password, html):
     
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = "A match was found for your crasiglist search: "
+    msg['Subject'] = "A match was found for your craigslist search: "
     msg['From'] = me
     msg['To'] = you
     
