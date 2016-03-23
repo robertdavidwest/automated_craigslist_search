@@ -6,7 +6,13 @@
 .. moduleauthor:: Robert D. West <robert.david.west@gmail.com>
 """
 import pdb
-import urllib2
+# Ref: http://stackoverflow.com/a/6594775/992184
+try:
+    # Python 3
+    import urllib.request as urllib2
+except ImportError:
+    # Python 2
+    import urllib2
 import bs4
 import pandas
 import smtplib
@@ -143,7 +149,10 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
         
     :returns: a pandas dataframe containing search results
     :rtype: Pandas.DataFrame
-    """  
+    """
+
+    debug_mode = False
+    user_agent_string = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
     
     # construct search url from specified criteria    
     search_key_words = search_key_words.replace(' ','+')
@@ -156,8 +165,12 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
         
     url = url + '&sort=rel'
     
-    # Open url and use beautiful soup to find search results    
-    response = urllib2.urlopen(url)
+    # Open url and use beautiful soup to find search results
+    request = urllib2.Request(url)
+    request.add_header('User-Agent', user_agent_string)
+    if debug_mode: print(request.get_full_url())
+    response = urllib2.build_opener().open(request).read()
+
     soup = bs4.BeautifulSoup(response)
        
     # initialise lists that will hold results of the search
@@ -170,10 +183,16 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
    
     # Check to see if multiple pages have been returned from the search
     # if so, loop through each page and append the results
-    multi_page_info = soup.find('span', {'class':'paginator buttongroup'})
+
+
+    # An assertion failure here likely means that Craigslist changed its HTML
+    multi_page_info = soup.section.find('div', {'class':'paginator buttongroup firstpage lastpage'})
+    assert(multi_page_info is not None)
     multi_page_info = multi_page_info.find('span', {'class':'button pagenum'})
+    assert(multi_page_info is not None)
 
     idx1 = multi_page_info.text.find("of")
+
     if multi_page_info.text == "no results":
         num_loops = 0
     elif idx1 == -1 :
@@ -189,10 +208,13 @@ def search_craigslist(search_key_words, min_value=None, max_value=None, category
             current_url = url
         else :
             idx2 = url.find("?")
-            current_url = url[:idx2+1] + "s=" + str(i*100) +  url[idx2+1:]
+            current_url = url[:idx2+1] + "s=" + str(i*100) + "&" + url[idx2+1:]
 
-        # Open url and use beautiful soup to find search results    
-        response = urllib2.urlopen(current_url)
+        # Open url and use beautiful soup to find search results
+        request = urllib2.Request(current_url)
+        request.add_header('User-Agent', user_agent_string)
+        if debug_mode: print(request.get_full_url())
+        response = urllib2.build_opener().open(request).read()
         soup = bs4.BeautifulSoup(response)
 
         # All data returned from the query is stored in <div class="content">
@@ -267,7 +289,7 @@ def send_email(me, you, password, html):
     
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = "A match was found for your crasiglist search: "
+    msg['Subject'] = "A match was found for your craigslist search: "
     msg['From'] = me
     msg['To'] = you
     
